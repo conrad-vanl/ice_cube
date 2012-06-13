@@ -1,5 +1,12 @@
 # ice_cube - easy date expansion
 
+This fork has merged the following:
+
+- https://github.com/seejohnrun/ice_cube/pull/71 -- Single recurrence and recurrences with duration conflict detection
+- https://github.com/seejohnrun/ice_cube/pull/85 -- Use TimeUtil.serialize for end_time (in to_hash)
+
+---
+
 [![Build Status](https://secure.travis-ci.org/seejohnrun/ice_cube.png)](http://travis-ci.org/seejohnrun/ice_cube)
 
 ``` bash
