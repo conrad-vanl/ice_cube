@@ -51,7 +51,7 @@ module IceCube
       rule.count(hash[:count]) if hash[:count]
       hash[:validations] && hash[:validations].each do |key, value|
         key = key.to_sym unless key.is_a?(Symbol)
-        value.is_a?(Array) ? value.each { |v| rule.send(key, v) } : rule.send(key, value)
+        value.is_a?(::Array) ? rule.send(key, *value) : rule.send(key, value)
       end
       rule
     end
