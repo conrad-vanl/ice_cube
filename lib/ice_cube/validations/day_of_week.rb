@@ -5,7 +5,7 @@ module IceCube
     def day_of_week(dows)
       dows.each do |day, occs|
         occs.each do |occ|
-          day = TimeUtil.symbol_to_day(day) if day.is_a?(Symbol)
+          day = TimeUtil.symbol_to_day(day.to_sym) if day.is_a?(Symbol) or day.is_a?(String)
           validations_for(:day_of_week) << Validation.new(day, occ)
         end
       end

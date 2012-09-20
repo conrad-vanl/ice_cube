@@ -6,7 +6,7 @@ module IceCube
   
     def day(*days)
       days.each do |day|
-        day = TimeUtil.symbol_to_day(day) if day.is_a?(Symbol)
+        day = TimeUtil.symbol_to_day(day.to_sym) if day.is_a?(Symbol) or day.is_a?(String)
         validations_for(:day) << Validation.new(day)
       end
       clobber_base_validations(:wday, :day)
