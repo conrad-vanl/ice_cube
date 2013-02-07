@@ -2,7 +2,7 @@ require File.dirname(__FILE__) + '/lib/ice_cube/version'
 
 spec = Gem::Specification.new do |s|
 
-  s.name = 'ice_cube_conrad'  
+  s.name = 'ice_cube'  
 
   s.author = 'John Crepezzi'
   s.add_development_dependency('rake')
