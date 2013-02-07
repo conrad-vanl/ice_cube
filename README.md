@@ -9,6 +9,10 @@ This fork has merged the following:
 
 [![Build Status](https://secure.travis-ci.org/seejohnrun/ice_cube.png)](http://travis-ci.org/seejohnrun/ice_cube)
 
+<a href="https://www.stripeme.com/pay/1lq0">
+  <img alt="Pay" src="https://www.stripeme.com/pay.jpg" />
+</a>
+
 ``` bash
 gem install ice_cube
 ```
@@ -86,6 +90,7 @@ schedule.next_occurrences(3, [from_date])
 schedule = Schedule.new(Time.now, :duration => 3600)
 schedule.add_recurrence_rule Rule.daily
 schedule.occurring_at?(Time.now + 1800) # true
+schedule.occurring_between?(t1, t2)
 
 # you can also give schedules a solidified end_time
 schedule = Schedule.new(Time.now, :end_time => Time.now + 3600)
@@ -256,6 +261,7 @@ schedule.add_recurrence_rule Rule.secondly(15).hour_of_day(12)
 * Mat Brown - mat@patch.com
 * Philip Roberts
 * @sakrafd
+* Andrew Vit (@avit)
 
 ---
 

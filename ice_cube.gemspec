@@ -1,9 +1,11 @@
 require File.dirname(__FILE__) + '/lib/ice_cube/version'
 
 spec = Gem::Specification.new do |s|
-  
+
   s.name = 'ice_cube_conrad'  
+
   s.author = 'John Crepezzi'
+  s.add_development_dependency('rake')
   s.add_development_dependency('rspec')
   s.add_development_dependency('active_support', '>= 3.0.0')
   s.add_development_dependency('tzinfo')

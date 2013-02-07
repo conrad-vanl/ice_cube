@@ -5,7 +5,7 @@ describe IceCube do
   it 'should consider recurrence dates properly in find_occurreces - github issue 43' do
     s = IceCube::Schedule.new(Time.local(2011,10,1, 18, 25))
     s.add_recurrence_date(Time.local(2011,12,3,15,0,0))
-    s.add_recurrence_date(Time.local(2011,12,3,10,0,0)) 
+    s.add_recurrence_date(Time.local(2011,12,3,10,0,0))
     s.add_recurrence_date(Time.local(2011,12,4,10,0,0))
     s.occurs_at?(Time.local(2011,12,3,15,0,0)).should be_true
   end
@@ -56,9 +56,9 @@ describe IceCube do
   end
 
   it 'should handle a simple weekly schedule - icecube issue #52' do
-    rule_inst = IceCube::Rule.weekly(1).day(4)
     st = Time.new(2011, 12, 1, 18, 0, 0)
     fin = Time.new(2012, 1, 1, 18, 0, 0)
+    rule_inst = IceCube::Rule.weekly(1).day(4).until(fin)
     schedule = IceCube::Schedule.new(st, :end_time => fin)
     schedule.add_recurrence_rule rule_inst
     schedule.all_occurrences.should == [
@@ -70,6 +70,20 @@ describe IceCube do
     ]
   end
 
+  it 'should produce all occurrences between dates, not breaking on exceptions [#82]' do
+    schedule = IceCube::Schedule.new(Time.new(2012, 5, 1))
+    schedule.add_recurrence_rule IceCube::Rule.daily.day(:sunday, :tuesday, :wednesday, :thursday, :friday, :saturday)
+    occurrences = schedule.occurrences_between(Time.new(2012, 5, 19), Time.new(2012, 5, 24))
+    occurrences.should == [
+      Time.new(2012, 5, 19),
+      Time.new(2012, 5, 20),
+      # No 21st
+      Time.new(2012, 5, 22),
+      Time.new(2012, 5, 23),
+      Time.new(2012, 5, 24)
+    ]
+  end
+
   it 'should be able to use count with occurrences_between falling over counts last occurrence - issue 54' do
     start_time = Time.now
     schedule = IceCube::Schedule.new(start_time)
@@ -78,7 +92,83 @@ describe IceCube do
     schedule.occurrences_between(start_time + 7 * IceCube::ONE_DAY, start_time + 14 * IceCube::ONE_DAY).count.should == 0
   end
 
+  it 'should produce occurrences regardless of time being specified [#81]' do
+    schedule = IceCube::Schedule.new(Time.new(2012, 05, 1))
+    schedule.add_recurrence_rule IceCube::Rule.daily.hour_of_day(8)
+    occ = schedule.occurrences_between(Time.new(2012, 05, 20), Time.new(2012, 05, 22))
+    occ.should == [
+      Time.new(2012, 5, 20, 8, 0, 0),
+      Time.new(2012, 5, 21, 8, 0, 0)
+    ]
+  end
+
+  it 'should not include exception times due to rounding errors [#83]' do
+    start_time = Time.new(2012, 12, 21, 21, 12, 21.212121)
+
+    schedule = IceCube::Schedule.new start_time
+    schedule.rrule IceCube::Rule.daily
+    schedule.exdate (start_time + IceCube::ONE_DAY).round
+
+    schedule.first(2)[0].should == start_time
+    schedule.first(2)[1].should == (start_time + 2*IceCube::ONE_DAY)
+  end
+
+  it 'should return true if a recurring schedule occurs_between? a time range [#88]' do
+    start_time = Time.new(2012, 7, 7, 8)
+    schedule = IceCube::Schedule.new(start_time, :duration => 2 * IceCube::ONE_HOUR)
+    schedule.add_recurrence_rule IceCube::Rule.weekly
+    t1 = Time.new(2012, 7, 14, 9)
+    t2 = Time.new(2012, 7, 14, 11)
+    schedule.occurring_between?(t1, t2).should be_true
+  end
+
   require 'active_support/time'
+
+  it 'should not hang over DST [#53]' do
+    schedule = IceCube::Schedule.new Time.now, :end_time => 4.years.from_now.end_of_year
+    schedule.rrule IceCube::Rule.monthly
+    schedule.occurrences 2.years.from_now
+  end
+
+  it 'should not hang next_time on DST boundary [#98]' do # set local to Sweden
+    schedule = IceCube::Schedule.from_yaml <<-EOS
+    :start_date: 2012-09-03 0:00:00.000000000 +00:00
+    :end_time: 2022-09-15 0:00:00.000000000 +00:00
+    :rrules:
+    - :validations: {}
+      :rule_type: IceCube::DailyRule
+      :interval: 1
+    :exrules: []
+    :rtimes: []
+    :extimes: []
+    EOS
+    occ = schedule.occurrences(Date.new(2013, 07, 13).to_time)
+  end
+
+  it 'should still include date over DST boundary [#98]' do # set local to Sweden
+    schedule = IceCube::Schedule.from_yaml <<-EOS
+    :start_date: 2012-09-03 15:00:00.000000000 +00:00
+    :end_time: 2022-09-15 15:00:00.000000000 +00:00
+    :rrules:
+    - :validations: {}
+      :rule_type: IceCube::DailyRule
+      :interval: 1
+    :exrules: []
+    :rtimes: []
+    :extimes: []
+    EOS
+    occ = schedule.occurrences(Date.new(2013, 07, 13).to_time)
+    occ.detect { |o| o.year == 2013 && o.month == 3 && o.day == 31 }.should be_true
+  end
+
+  it "failing spec for hanging on DST boundary [#98]" do
+    Time.zone = "Europe/London"
+    first = Time.zone.parse("Sun, 31 Mar 2013 00:00:00 GMT +00:00")
+    schedule = IceCube::Schedule.new(first)
+    schedule.add_recurrence_rule IceCube::Rule.monthly
+    next_occurance = schedule.next_occurrence(first)
+  end
+
   it 'should exclude a date from a weekly schedule - issue #55' do
     Time.zone = 'Eastern Time (US & Canada)'
     ex = Time.zone.local(2011, 12, 27, 14)
@@ -89,4 +179,55 @@ describe IceCube do
     schedule.first.should == Time.zone.local(2011, 12, 29, 14)
   end
 
+  it 'should not raise an exception after setting the rule until to nil' do
+    rule = IceCube::Rule.daily.until(Time.local(2012, 10, 1))
+    rule.until(nil)
+
+    schedule = IceCube::Schedule.new Time.local(2011, 10, 11, 12)
+    schedule.add_recurrence_rule rule
+
+    lambda {
+      schedule.occurrences_between(Time.local(2012, 1, 1), Time.local(2012, 12, 1))
+    }.should_not raise_error(ArgumentError, 'comparison of Time with nil failed')
+  end
+
+  it 'should not infinite loop [#109]' do
+    schedule = IceCube::Schedule.new Time.new(2012, 4, 27, 0, 0, 0)
+    schedule.rrule IceCube::Rule.weekly.day(:monday, :tuesday, :wednesday, :thursday, :friday, :saturday, :sunday).hour_of_day(0).minute_of_hour(0).second_of_minute(0)
+    schedule.duration = 3600
+    start_time = Time.new(2012, 10, 20, 0, 0, 0)
+    end_time = Time.new(2012, 10, 20, 23, 59, 59)
+    schedule.occurrences_between(start_time, end_time).first.should == start_time
+  end
+
+  it 'should return next_occurrence in utc if start_time is utc [#115]' do
+    schedule = IceCube::Schedule.new Time.utc(2012, 10, 10, 20, 15, 0)
+    schedule.rrule IceCube::Rule.daily
+    schedule.next_occurrence.should be_utc
+  end
+
+  it 'should return next_occurrence in local if start_time is local [#115]' do
+    schedule = IceCube::Schedule.new Time.new(2012, 10, 10, 20, 15, 0)
+    schedule.rrule IceCube::Rule.daily
+    schedule.next_occurrence.should_not be_utc
+  end
+
+  it 'should return next_occurrence in local by default [#115]' do
+    schedule = IceCube::Schedule.new
+    schedule.rrule IceCube::Rule.daily
+    schedule.next_occurrence.should_not be_utc
+  end
+
+  it 'should include occurrences on until _date_ [#118]' do
+    schedule = IceCube::Schedule.new Time.new(2012, 4, 27)
+    schedule.rrule IceCube::Rule.daily.hour_of_day(12).until(Date.new(2012, 4, 28))
+    schedule.all_occurrences.should == [Time.new(2012, 4, 27, 12), Time.new(2012, 4, 28, 12)]
+  end
+
+  it 'should strip usecs from arguments when finding occurrences' do
+    schedule = IceCube::Schedule.new(Time.utc(2012, 4, 1, 10, 00))
+    schedule.rrule IceCube::Rule.weekly
+    time = schedule.occurrences_between(Time.utc(2012,5,1,10,00,00,4), Time.utc(2012, 5, 15)).first
+    time.usec.should == 0
+  end
 end

@@ -80,7 +80,7 @@ describe IceCube, 'to_ical' do
 
   it 'should be able to collapse a combination day_of_week and day' do
     rule = IceCube::Rule.daily.day(:monday, :tuesday).day_of_week(:monday => [1, -1])
-    ['FREQ=DAILY;BYDAY=TU,1MO,-1MO', 'FREQ=DAILY;BYDAY=1MO,-1MO,TU'].include?(rule.to_ical).should be(true)
+    ['FREQ=DAILY;BYDAY=TU,1MO,-1MO', 'FREQ=DAILY;BYDAY=1MO,-1MO,TU'].include?(rule.to_ical).should be_true
   end
 
   it 'should be able to serialize of .day_of_week rule to_ical with multiple days' do
@@ -91,7 +91,7 @@ describe IceCube, 'to_ical' do
       'FREQ=DAILY;BYDAY=2TU,1MO,-1MO,WE',
       'FREQ=DAILY;BYDAY=WE,2TU,1MO,-1MO',
       'FREQ=DAILY;BYDAY=2TU,WE,1MO,-1MO'
-    ].include?(rule.to_ical).should be(true)
+    ].include?(rule.to_ical).should be_true
   end
 
   it 'should be able to serialize a base schedule to ical in local time' do
@@ -168,14 +168,14 @@ describe IceCube, 'to_ical' do
   it 'should be able to serialize a schedule with a duration' do
     schedule = IceCube::Schedule.new(Time.utc(2010, 5, 10, 10), :duration => 3600)
     expectation = "DTSTART:20100510T100000Z\n"
-    expectation << 'DURATION:PT1H'
+    expectation << 'DTEND:20100510T110000Z'
     schedule.to_ical.should == expectation
   end
 
   it 'should be able to serialize a schedule with a duration - more odd duration' do
     schedule = IceCube::Schedule.new(Time.utc(2010, 5, 10, 10), :duration => 3665)
     expectation = "DTSTART:20100510T100000Z\n"
-    expectation << 'DURATION:PT1H1M5S'
+    expectation << 'DTEND:20100510T110105Z'
     schedule.to_ical.should == expectation
   end
 

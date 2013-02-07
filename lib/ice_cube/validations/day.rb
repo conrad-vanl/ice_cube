@@ -3,7 +3,7 @@ require 'date'
 module IceCube
 
   module Validations::Day
-  
+
     def day(*days)
       days.each do |day|
         day = TimeUtil.symbol_to_day(day.to_sym) if day.is_a?(Symbol) or day.is_a?(String)

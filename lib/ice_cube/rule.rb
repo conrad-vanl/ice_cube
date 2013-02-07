@@ -108,7 +108,8 @@ module IceCube
     end
 
     # Convert from a hash and create a rule
-    def self.from_hash(hash)
+    def self.from_hash(original_hash)
+      hash = IceCube::FlexibleHash.new original_hash
       return nil unless match = hash[:rule_type].match(/\:\:(.+?)Rule/)
       rule = IceCube::Rule.send(match[1].downcase.to_sym, hash[:interval] || 1)
       rule.until(TimeUtil.deserialize_time(hash[:until])) if hash[:until]
@@ -129,12 +130,12 @@ module IceCube
     end
 
     def on?(time, schedule)
-      next_time(time, schedule, time) == time
+      next_time(time, schedule, time).to_i == time.to_i
     end
 
     # Whether this rule requires a full run
     def full_required?
-      !@count.nil?
+      !@count.nil? || (!@interval.nil? && @interval > 1)
     end
 
     # Convenience methods for creating Rules
@@ -176,7 +177,7 @@ module IceCube
       end
 
     end
-    
+
   end
 
 end
